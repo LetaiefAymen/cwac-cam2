@@ -21,6 +21,7 @@ import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.WindowManager;
@@ -32,6 +33,7 @@ import com.commonsware.cwac.cam2.util.Size;
  * maintaining aspect ratios and dealing with full-bleed previews.
  */
 public class CameraView extends TextureView implements TextureView.SurfaceTextureListener {
+  private static final String TAG = "CameraView";
   public interface StateCallback {
     void onReady(CameraView cv);
     void onDestroyed(CameraView cv);
@@ -93,7 +95,7 @@ public class CameraView extends TextureView implements TextureView.SurfaceTextur
    */
   public void setPreviewSize(Size previewSize) {
     this.previewSize=previewSize;
-
+    Log.d(TAG, "setPreviewSize() called with: " + "previewSize = [" + previewSize + "]");
     enterTheMatrix();
     requestLayout();
   }
@@ -107,15 +109,19 @@ public class CameraView extends TextureView implements TextureView.SurfaceTextur
     boolean isFullBleed=true;
 
     if (previewSize==null) {
+      Log.d(TAG, "previewSize==null");
       setMeasuredDimension(width, height);
     }
     else {
+      Log.d(TAG, "previewSize!=null");
       if (isFullBleed) {
         if (width>height*previewSize.getWidth()/previewSize.getHeight()) {
+          Log.d(TAG, "onMeasure case1: Width : "+width+ " Height : "+(width*previewSize.getHeight()/previewSize.getWidth()));
           setMeasuredDimension(width,
             width*previewSize.getHeight()/previewSize.getWidth());
         }
         else {
+          Log.d(TAG, "onMeasure case2: Width : "+height*previewSize.getWidth()/previewSize.getHeight()+ " Height : "+height);
           setMeasuredDimension(height*previewSize.getWidth()/previewSize.getHeight(),
             height);
         }

@@ -43,12 +43,12 @@ import de.greenrobot.event.EventBus;
  * you (or the user) to take a picture.
  */
 public class CameraFragment extends Fragment {
-  private static final String ARG_OUTPUT="output";
-  private static final String ARG_UPDATE_MEDIA_STORE="updateMediaStore";
-  private static final String ARG_IS_VIDEO="isVideo";
-  private static final String ARG_VIDEO_QUALITY="quality";
-  private static final String ARG_SIZE_LIMIT="sizeLimit";
-  private static final String ARG_DURATION_LIMIT="durationLimit";
+  public static final String ARG_OUTPUT="output";
+  public static final String ARG_UPDATE_MEDIA_STORE="updateMediaStore";
+  public static final String ARG_IS_VIDEO="isVideo";
+  public static final String ARG_VIDEO_QUALITY="quality";
+  public static final String ARG_SIZE_LIMIT="sizeLimit";
+  public static final String ARG_DURATION_LIMIT="durationLimit";
   private CameraController ctlr;
   private ViewGroup previewStack;
   private FloatingActionButton fabPicture;

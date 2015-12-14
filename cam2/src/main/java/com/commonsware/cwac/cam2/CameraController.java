@@ -19,6 +19,7 @@ import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
+import android.util.Log;
 import android.view.View;
 import com.commonsware.cwac.cam2.plugin.FlashModePlugin;
 import com.commonsware.cwac.cam2.plugin.FocusModePlugin;
@@ -49,6 +50,7 @@ public class CameraController implements CameraView.StateCallback {
   private final AbstractCameraActivity.FocusMode focusMode;
   private final List<FlashMode> flashModes;
   private final boolean isVideo;
+  private static final String TAG = "CameraController";
 
   public CameraController(AbstractCameraActivity.FocusMode focusMode,
                           List<FlashMode> flashModes,
@@ -283,7 +285,7 @@ public class CameraController implements CameraView.StateCallback {
             .addPlugin(
               new FlashModePlugin(flashModes))
             .build();
-
+        Log.d(TAG, "open: PreviewSize"+cv.getPreviewSize());
         engine.open(session, texture);
       }
     }
