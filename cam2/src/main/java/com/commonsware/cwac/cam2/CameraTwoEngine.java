@@ -16,7 +16,6 @@ package com.commonsware.cwac.cam2;
 
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -38,9 +37,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.view.Surface;
-import android.view.WindowManager;
 import com.commonsware.cwac.cam2.util.Size;
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,6 +48,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import de.greenrobot.event.EventBus;
+
+import static android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP;
 
 /**
  * Implementation of a CameraEngine that supports the
@@ -68,7 +67,31 @@ public class CameraTwoEngine extends CameraEngine {
   private CountDownLatch closeLatch=null;
   private MediaActionSound shutter=new MediaActionSound();
   private List<Descriptor> descriptors=null;
+  private ImageReader mImageReader;
+  private static final String TAG = "CameraTwoEngine";
+  private final ImageReader.OnImageAvailableListener mOnFrameAvailableListener =
+          new ImageReader.OnImageAvailableListener() {
 
+            @Override
+            public void onImageAvailable(ImageReader reader) {
+              Image img = reader.acquireLatestImage();
+              try {
+                if (img == null) throw new NullPointerException("cannot be null");
+                ByteBuffer buffer = img.getPlanes()[0].getBuffer();
+                byte[] data = new byte[buffer.remaining()];
+                buffer.get(data);
+                if (processFrameCallback != null) {
+                  processFrameCallback.processFrame(data);
+                }
+              } catch (Throwable e) {
+                Log.e(TAG, "onImageAvailable: Error", e);
+              } finally {
+                if (img != null)
+                  img.close();
+              }
+            }
+
+          };
   /**
    * Standard constructor
    *
@@ -228,6 +251,11 @@ public class CameraTwoEngine extends CameraEngine {
         s.reader.close();
       }
 
+      if(mImageReader!=null)
+      {
+        mImageReader.close();
+      }
+
       s.setClosed(true);
 
       Descriptor camera=(Descriptor)session.getDescriptor();
@@ -306,20 +334,45 @@ public class CameraTwoEngine extends CameraEngine {
       lock.release();
       s.cameraDevice=cameraDevice;
       s.reader=s.buildImageReader();
-
       Descriptor camera=(Descriptor)s.getDescriptor();
-
       camera.setDevice(cameraDevice);
 
       try {
+        mImageReader = buildImageProcessingReader(camera.cameraId);
+        mImageReader.setOnImageAvailableListener(mOnFrameAvailableListener, new Handler(handlerThread.getLooper()));
         cameraDevice.createCaptureSession(
-            Arrays.asList(surface, s.reader.getSurface()),
-            new StartPreviewTransaction(s, surface), handler);
+            Arrays.asList(surface,mImageReader.getSurface(),s.reader.getSurface()),
+            new StartPreviewTransaction(s, surface,mImageReader.getSurface()), handler);
       }
       catch (CameraAccessException e) {
+        Log.e(TAG, "onOpened: ",e);
         getBus().post(new OpenedEvent(e));
       }
     }
+
+    private ImageReader buildImageProcessingReader(String cameraId) throws CameraAccessException
+    {
+      CameraCharacteristics characteristics=mgr.getCameraCharacteristics(cameraId);
+      StreamConfigurationMap map = characteristics.get(SCALER_STREAM_CONFIGURATION_MAP);
+      // For still image captures, we use the largest available size.
+      List<android.util.Size> outputSizes = Arrays.asList(map.getOutputSizes(ImageFormat.YUV_420_888));
+      android.util.Size largest = Collections.max(outputSizes, new CompareSizesByArea());
+      return ImageReader.newInstance(largest.getWidth()/8, largest.getHeight()/8, ImageFormat.YUV_420_888, 2);
+    }
+
+    //Compares two {@code Size}s based on their areas.
+    private class CompareSizesByArea implements Comparator<android.util.Size> {
+
+      @Override
+      public int compare(android.util.Size lhs, android.util.Size rhs) {
+        // We cast here to ensure the multiplications won't overflow
+        return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
+                (long) rhs.getWidth() * rhs.getHeight());
+      }
+
+    }
+
+
 
     @Override
     public void onDisconnected(CameraDevice cameraDevice) {
@@ -346,11 +399,13 @@ public class CameraTwoEngine extends CameraEngine {
 
   private class StartPreviewTransaction extends CameraCaptureSession.StateCallback {
     private final Surface surface;
+    private final Surface processSurface;
     private final Session s;
 
-    StartPreviewTransaction(CameraSession session, Surface surface) {
+    StartPreviewTransaction(CameraSession session, Surface surface,Surface processSurface) {
       this.s=(Session)session;
       this.surface=surface;
+      this.processSurface=processSurface;
     }
 
     @Override
@@ -361,9 +416,10 @@ public class CameraTwoEngine extends CameraEngine {
 
           s.previewRequestBuilder=session.getDevice().createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
           s.previewRequestBuilder.addTarget(surface);
-          s.previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+          s.previewRequestBuilder.addTarget(processSurface);
+          s.previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,//Auto focus
               CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-          s.previewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
+          s.previewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE,//Auto exposure
               CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
 
           Descriptor camera=(Descriptor)s.getDescriptor();
