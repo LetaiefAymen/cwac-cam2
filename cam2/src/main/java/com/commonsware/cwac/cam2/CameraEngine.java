@@ -40,6 +40,12 @@ abstract public class CameraEngine {
   private LinkedBlockingQueue<Runnable> queue=new LinkedBlockingQueue<Runnable>();
   private ThreadPoolExecutor pool;
   private File savePreviewFile=null;
+  protected ProcessFrameCallback processFrameCallback;
+
+  public interface ProcessFrameCallback
+  {
+    void processFrame(byte[] data);
+  }
 
   private static class CrashableEvent {
     /**

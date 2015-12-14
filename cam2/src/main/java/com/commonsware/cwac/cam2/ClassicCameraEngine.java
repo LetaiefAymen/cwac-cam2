@@ -15,7 +15,6 @@
 package com.commonsware.cwac.cam2;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -23,12 +22,8 @@ import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.os.Build;
-import android.os.Environment;
 import android.util.Log;
-import android.view.Surface;
-import android.view.WindowManager;
 import com.commonsware.cwac.cam2.util.Size;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,7 +45,7 @@ public class ClassicCameraEngine extends CameraEngine
   private VideoTransaction xact;
   private int previewWidth, previewHeight;
   private int previewFormat;
-
+  private byte[] mBuffer;
   public ClassicCameraEngine(Context ctxt) {
     this.ctxt=ctxt.getApplicationContext();
   }
@@ -148,6 +143,8 @@ public class ClassicCameraEngine extends CameraEngine
 
     if (camera != null) {
       camera.stopPreview();
+      camera.setPreviewCallback(null);
+      camera.setPreviewCallbackWithBuffer(null);
       camera.release();
       descriptor.setCamera(null);
     }
@@ -218,10 +215,34 @@ public class ClassicCameraEngine extends CameraEngine
           camera.setParameters(((Session)session).configureStillCamera(
             false));
           camera.setPreviewTexture(texture);
+          // Allocate the buffer
+          //TODO Aymen: make sure that the buffer is working on all cases
+          mBuffer = null;
+          camera.setPreviewCallbackWithBuffer(null);
+          // Callback buffer was too small! Expected 576000 bytes, but got 460800 bytes!
+          Camera.Parameters params = camera.getParameters();
+          int size = params.getPreviewSize().width * params.getPreviewSize().height;
+          size = size * ImageFormat.getBitsPerPixel(params.getPreviewFormat()) / 8;
+          mBuffer = new byte[size];
+          camera.addCallbackBuffer(mBuffer);
+          if(processFrameCallback!=null) {
+            camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+              @Override
+              public void onPreviewFrame(byte[] data, Camera camera) {
+                //Maybe we don't need to test if processFrameCallback is null
+                if (processFrameCallback != null) {
+                  processFrameCallback.processFrame(data);
+                }
+                camera.addCallbackBuffer(mBuffer);
+              }
+            });
+          }
           camera.startPreview();
           getBus().post(new OpenedEvent());
         }
         catch (Exception e) {
+          camera.setPreviewCallback(null);
+          camera.setPreviewCallbackWithBuffer(null);
           camera.release();
           descriptor.setCamera(null);
           getBus().post(new OpenedEvent(e));
