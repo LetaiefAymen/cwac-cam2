@@ -27,11 +27,15 @@
 | Motorola Moto E XT1022         | `motorola`/`condor_retla_ds`| 4.4.4 | |
 | Samsung Galaxy Ace 3           | `samsung`/`loganub`         | 4.2.2 | |
 | Samsung Galaxy Camera EK-GC110 | `samsung`/`gd1wifiue`       | 4.1.2 | |
+| Samsung Galaxy Grand GT-I9080L | `samsung`/`baffinssvj`      | 4.2.2 | |
 | Samsung Galaxy Note 2 GT-N7100 | `samsung`/`t03gxx`          | 4.1.2 | |
 | Samsung Galaxy Note 3 SM-N900  | `samsung`/`ha3gub`          | 5.0   | |
 | Samsung Galaxy Pocket Neo      | `samsung`/`corsicadd`       | 4.1.2   | |
 | Samsung Galaxy S III           | `samsung`/`d2lterefreshspr` | 4.4.2 | |
 | Samsung Galaxy S III           | `samsung`/`d2uc`            | 4.4.2 | |
+| Samsung Galaxy S III           | `samsung`/`m0xx`            | 4.3   | |
+| Samsung Galaxy S4              | `samsung`/`ja3gxx`          | 4.4.2 | [132](https://github.com/commonsguy/cwac-cam2/issues/132) |
+| Samsung Galaxy S4              | `samsung`/`jflteuc`         | 4.2.2 | |
 | Samsung Galaxy S4 Zoom         | `samsung`/`mprojectlteuc`   | 4.2.2 | [130](https://github.com/commonsguy/cwac-cam2/issues/130) |
 | Samsung Galaxy S5              | `samsung`/`k3gxx`           | 5.0   | |
 | SONY Xperia Z (C6603)          | `Sony`/`C6603`              | 5.1.1 | |
